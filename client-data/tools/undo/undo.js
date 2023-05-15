@@ -49,10 +49,9 @@
         // console.log(elem)
 				if (elem === null) console.error("Undo: nothing had been done.");
 				else {
-          if(len+1<20){
             stack[len] = elem;
             len++;
-          }
+            len=len%20;
           Tools.drawingArea.removeChild(elem);
         }
 				break;
@@ -86,11 +85,13 @@
 
   function redo() {
       if(len>=1 & len<20){
-      var target_index  = len -1;
+      
       len--;
+      len=(len+20)%20;
+      var target_index  = len;
        msg.id = Tools.generateUID("R")
        msg.redo_id = target_index;
-       console.log(msg);
+      //  console.log(msg);
        Tools.drawAndSend(msg, Tools.list["redo"]);
       }
   }
