@@ -30,7 +30,9 @@
     var pic_url = [
         "",
         "https://gss0.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/zhidao/pic/item/a71ea8d3fd1f4134533dc03b251f95cad1c85e69.jpg",
-        "https://pic.ntimg.cn/file/20200102/30870395_151038715247_2.jpg"
+        "https://i.udongman.cn/image/2020/0222/20200222032147405.jpg",
+        "https://is4-ssl.mzstatic.com/image/thumb/Purple118/v4/7c/87/86/7c8786fe-9b2f-c6ac-7968-d12ee6f16288/pr_source.png/2732x2048bb.png"
+
     ];
 
     function togglebg(evt) {
@@ -66,6 +68,8 @@
 
         var svgDemo= document.createElementNS('http://www.w3.org/2000/svg','svg');
         svgDemo.setAttribute("id","background");
+        svgDemo.setAttribute("preserveAspectRatio","xMinYMin meet");
+        svgDemo.setAttribute("viewBox","0,0,3000,3000");
         svgDemo.style.width = "100%";
 
         svgDemo.style.height = "100%";
