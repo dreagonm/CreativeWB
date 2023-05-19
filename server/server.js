@@ -5,6 +5,7 @@ var app = require("http").createServer(handler),
   fs = require("fs"),
   crypto = require("crypto"),
   serveStatic = require("serve-static"),
+  upload_file = require("./upload_file.js"),
   createSVG = require("./createSVG.js"),
   templating = require("./templating.js"),
   config = require("./configuration.js"),
@@ -27,7 +28,8 @@ if (parseFloat(process.versions.node) < MIN_NODE_VERSION) {
 
 check_output_directory(config.HISTORY_DIR);
 
-sockets.start(app);
+var io = sockets.start(app);
+upload_file.set(io);
 
 app.listen(config.PORT, config.HOST);
 log("server started", { port: config.PORT });
