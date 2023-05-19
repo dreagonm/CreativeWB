@@ -1,3 +1,5 @@
+const { userInfo } = require("os");
+
 var app = require("http").createServer(handler),
   sockets = require("./sockets.js"),
   {log, monitorFunction} = require("./log.js"),
@@ -108,6 +110,13 @@ var current_online_user_Token = {
 
 }
 
+const onlineUserInfoMap = new Map();
+
+function getOnlineUserInfo(token) {
+  const userInfo = onlineUserInfoMap.get(token);
+  return userInfo ? userInfo : -1;
+}
+
 /**
  * @type {import('http').RequestListener}
  */
@@ -152,6 +161,11 @@ function handleRequest(request, response) {
               .replace(/[^\w]/g, "-"),
               nickname: userlist[jsondata.username].nickname
             }
+            onlineUserInfoMap.set(current_online_user_Token[jsondata.username].token, {
+              "username": current_online_user_Token[jsondata.username].username,
+              "password": current_online_user_Token[jsondata.username].password
+            });
+            console.log(onlineUserInfoMap.get(current_online_user_Token[jsondata.username].token));
             var headers = { Location: "index" }; // 登录成功的跳转
               response.writeHead(301, headers);
               response.end();
