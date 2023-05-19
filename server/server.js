@@ -88,6 +88,10 @@ const indexTemplate = new templating.Template(
   path.join(config.WEBROOT, "index.html")
 );
 
+const loginTemplate = new templating.Template(
+  path.join(config.WEBROOT, "login.html")
+);
+
 /**
  * Throws an error if the given board name is not allowed
  * @param {string} boardName
@@ -96,6 +100,10 @@ const indexTemplate = new templating.Template(
 function validateBoardName(boardName) {
   if (/^[\w%\-_~()]*$/.test(boardName)) return boardName;
   throw new Error("Illegal board name: " + boardName);
+}
+
+var current_online_user_Token = {
+
 }
 
 /**
@@ -116,6 +124,70 @@ function handleRequest(request, response) {
   }
 
   switch (parts[0]) {
+    case "login":
+      if(request.method != "POST"){
+        response.end('<p>请求方法错误</p>');
+      }
+      var data = ''
+      req.on('data',function(d){
+        data += d
+      })
+      var jsondata = require('querystring').parse(data);
+      console.log('LOGIN REQUEST'+ jsondata);
+      fs.readFile(path.join(__dirname,'..','server-data','user-list.json'),'utf8',(err,data) => {
+        if(err)
+          console.log(err);
+        let userlist = JSON.parse(data);
+        if(userlist && userlist[jsondata.username] && userlist[jsondata.username].password == jsondata.password){
+          current_online_user_Token[username] = {
+            username: jsondata.username,
+            password: jsondata.password,
+            Token:  crypto
+            .randomBytes(32)
+            .toString("base64")
+            .replace(/[^\w]/g, "-"),
+            nickname: userlist[jsondata.username].nickname
+          }
+          var headers = { Location: "index" }; // 登录成功的跳转
+            response.writeHead(301, headers);
+            response.end();
+        }
+        else{
+          response.end('<p>登录失败</p>');
+        }
+      })
+      break;
+    case "regist":
+      if(request.method != "POST"){
+        response.end('<p>请求方法错误</p>');
+      }
+      var data = ''
+      req.on('data',function(d){
+        data += d
+      })
+      var jsondata = require('querystring').parse(data);
+      console.log('REGIST REQUEST'+ jsondata);
+      let userlist;
+      fs.readFile(path.join(__dirname,'..','server-data','user-list.json'),'utf8',(err,data) => {
+        if(err)
+          console.log(err);
+        userlist = JSON.parse(data);
+        if(userlist && userlist[jsondata.username]){
+          response.end('<p>用户已存在</p>');
+        }
+        userlist[jsondata.username] = {
+          username: jsondata.username,
+          password: jsondata.password,
+          nickname: jsondata.nickname
+        }
+      })
+      fs.writeFile(dir, JSON.stringify(userlist), 'utf8', (err) => {
+        console.log('注册成功', err);
+      })
+      var headers = { Location: "" }; // 登录成功的跳转
+      response.writeHead(301, headers);
+      response.end();
+      break;
     case "boards":
       // "boards" refers to the root directory
       if (parts.length === 1) {
@@ -221,7 +293,12 @@ function handleRequest(request, response) {
         });
       break;
 
-    case "": // Index page
+      case "": // login Page
+      logRequest(request);
+        loginTemplate.serve(request, response);
+        break;
+
+    case "index": // Index page
       logRequest(request);
         indexTemplate.serve(request, response);
       break;

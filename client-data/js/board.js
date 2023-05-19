@@ -63,10 +63,11 @@ Tools.connect = function () {
 	}
 
 	var url = new URL(window.location);
-	var params = new URLSearchParams(url.search);
+	var params = new URLSearchParams(url.search); // 查询字符串部分 ?xxxx=yyyy
 
 	var socket_params = {
-		"path": window.location.pathname.split("/boards/")[0] + "/socket.io",
+		"path": window.location.pathname.split("/boards/")[0] + "/socket.io", // pathname是路径部分，返回或设置URL的路径部分，例如"/myapp.php"或"/boards/test"
+		// 提取board之前的地址
 		"reconnection": true,
 		"reconnectionDelay": 100, //Make the xhr connections as fast as possible
 		"timeout": 1000 * 60 * 20 // Timeout after 20 minutes
@@ -76,6 +77,7 @@ Tools.connect = function () {
 	}
 
 	this.socket = io.connect('', socket_params);
+	//等价于var socket = io.connect(‘http://server’);
 
 	//Receive draw instructions from the server
 	this.socket.on("broadcast", function (msg) {
@@ -84,10 +86,24 @@ Tools.connect = function () {
 			loadingEl.classList.add("hidden");
 		});
 	});
+	/*
+	this.socket.on(“broadcast”, function (msg) {…})：这是用来监听服务器端发送的broadcast事件，
+	该事件表示有其他用户更新了画板的数据。当收到这个事件时，会调用handleMessage函数来处理服务器端发送的消息（msg）
+	，该函数可能是用来更新画板的状态或显示提示信息等。handleMessage函数返回一个Promise对象，表示异步操作的结果。
+	当这个Promise对象被resolve或reject时，会调用finally方法，执行一个回调函数。
+	该回调函数会获取页面中的一个元素（loadingEl），并给它添加一个hidden类，表示隐藏加载信息。
+	*/
 
 	this.socket.on("reconnect", function onReconnection() {
 		Tools.socket.emit('joinboard', Tools.boardName);
 	});
+
+	/*
+	this.socket.on(“reconnect”, function onReconnection() {…})：这是用来监听客户端重新连接服务器端的事件，
+	该事件表示客户端在断开连接后又成功恢复了连接。当收到这个事件时，
+	会调用this.socket.emit(‘joinboard’, Tools.boardName)方法，向服务器端发送一个joinboard事件，
+	该事件表示客户端要加入一个指定的画板（Tools.boardName），可能是为了同步画板的数据或显示在线用户等。
+	*/
 };
 
 Tools.connect();
@@ -97,12 +113,25 @@ Tools.boardName = (function () {
 	return decodeURIComponent(path[path.length - 1]);
 })();
 
+/*
+这两行代码的作用是获取URL的路径部分中最后一个部分，并对其进行解码。具体来说：
+
+- var path = window.location.pathname.split("/");：这一行是用来将URL的路径部分按照斜杠（/）分割成一个数组，
+并赋值给变量path。例如，如果URL是http://server/myapp.php/boards/test，
+那么path的值是[\"\", \"myapp.php\", \"boards\", \"test\"]。
+- return decodeURIComponent(path[path.length - 1]);：这一行是用来返回path数组中最后一个元素，
+并对其进行解码。解码的目的是将可能存在的百分号编码（%xx）转换成对应的字符。
+例如，如果path数组中最后一个元素是\"test%20board\"，那么返回的值是\"test board\"。
+*/
+
 Tools.token = (function() {
 	var url = new URL(window.location);
 	var params = new URLSearchParams(url.search);
 	return params.get("token");
 })();
 
+
+// 获取白板
 //Get the board as soon as the page is loaded
 Tools.socket.emit("getboard", Tools.boardName);
 
@@ -125,6 +154,15 @@ function saveBoardNametoLocalStorage() {
 	recentBoards = recentBoards.slice(0, 20);
 	localStorage.setItem(key, JSON.stringify(recentBoards));
 }
+/*
+根据搜索结果¹，js array.unshift是一个数组方法，用于将一个或多个元素添加到数组的开头，并返回新的数组长度。它会改变原数组的内容和长度。例如：
+
+var fruits = ["Banana", "Orange", "Apple", "Mango"];
+fruits.unshift("Lemon","Pineapple");
+// fruits 的值是 ["Lemon", "Pineapple", "Banana", "Orange", "Apple", "Mango"]
+// unshift 方法的返回值是 6，表示新的数组长度
+
+*/
 // Refresh recent boards list on each page show
 window.addEventListener("pageshow", saveBoardNametoLocalStorage);
 
@@ -134,6 +172,7 @@ Tools.HTML = {
 		window.addEventListener("keydown", function (e) {
 			if (e.key === key && !e.target.matches("input[type=text], textarea")) {
 				callback();
+				// 按下键且不是输入框就调用callback
 			}
 		});
 	},
@@ -144,6 +183,12 @@ Tools.HTML = {
 		this.addShortcut(toolShortcut, function () {
 			Tools.change(toolName);
 			document.activeElement.blur && document.activeElement.blur();
+			/*
+			document.activeElement是一个属性，返回当前文档中具有焦点的元素，如果没有，则返回文档本身。
+blur是一个方法，用于移除元素的焦点状态，使其失去焦点。
+&&是一个逻辑与运算符，用于判断两个操作数的真值，如果第一个操作数为真，则返回第二个操作数，否则返回第一个操作数。
+document.activeElement.blur && document.activeElement.blur()是一个表达式，先计算document.activeElement.blur，如果它为真（表示当前文档中有一个具有焦点的元素，并且它有blur方法），则继续计算document.activeElement.blur()，调用该方法，使该元素失去焦点。如果document.activeElement.blur为假（表示当前文档中没有具有焦点的元素，或者它没有blur方法），则不执行后面的操作。
+			*/
 		});
 		return this.template.add(function (elem) {
 			elem.addEventListener("click", callback);
@@ -265,6 +310,8 @@ Tools.add = function (newTool) {
 	Tools.HTML.addTool(newTool.name, newTool.icon, newTool.iconHTML, newTool.shortcut, newTool.oneTouch);
 };
 
+
+// 切换当前选中的工具
 Tools.change = function (toolName) {
 	var newTool = Tools.list[toolName];
 	var oldTool = Tools.curTool;
