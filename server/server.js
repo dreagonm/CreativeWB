@@ -88,6 +88,10 @@ const indexTemplate = new templating.Template(
   path.join(config.WEBROOT, "index.html")
 );
 
+const loginTemplate = new templating.Template(
+  path.join(config.WEBROOT, "login.html")
+);
+
 /**
  * Throws an error if the given board name is not allowed
  * @param {string} boardName
@@ -96,6 +100,10 @@ const indexTemplate = new templating.Template(
 function validateBoardName(boardName) {
   if (/^[\w%\-_~()]*$/.test(boardName)) return boardName;
   throw new Error("Illegal board name: " + boardName);
+}
+
+var current_online_user_Token = {
+
 }
 
 /**
@@ -116,6 +124,80 @@ function handleRequest(request, response) {
   }
 
   switch (parts[0]) {
+    case "login":
+      if(request.method != "POST"){
+        response.end('<head><meta charset="utf-8" /></head><p>请求方法错误</p>');
+      }
+      var data = ''
+      request.on('data',function(d){
+        data += d
+      })
+      request.on('end',function(){
+        console.log(data);
+        var jsondata = require('querystring').parse(data);
+        console.log('LOGIN REQUEST'+  JSON.stringify(jsondata));
+        fs.readFile(path.join(__dirname,'..','server-data','user-list.json'),(err,data) => {
+          if(err)
+            console.log(err);
+          let userlist = JSON.parse(data.toString());
+          if(userlist && userlist[jsondata.username] && userlist[jsondata.username].password == jsondata.password){
+            current_online_user_Token[jsondata.username] = {
+              username: jsondata.username,
+              password: jsondata.password,
+              Token:  crypto
+              .randomBytes(32)
+              .toString("base64")
+              .replace(/[^\w]/g, "-"),
+              nickname: userlist[jsondata.username].nickname
+            }
+            var headers = { Location: "index" }; // 登录成功的跳转
+              response.writeHead(301, headers);
+              response.end();
+          }
+          else{
+            response.end('<head><meta charset="utf-8" /></head><p>登录失败</p>');
+          }
+        })
+      })
+      break;
+    case "regist":
+      if(request.method != "POST"){
+        response.end('<head><meta charset="utf-8" /></head><p>请求方法错误</p>');
+      }
+      var data = ''
+      request.on('data',function(d){
+        data += d
+      })
+      request.on('end',function(){
+        var jsondata = require('querystring').parse(data);
+        console.log('REGIST REQUEST'+ JSON.stringify(jsondata));
+        var userlist;
+        console.log(path.join(__dirname,'..','server-data','user-list.json'))
+        fs.readFile(path.join(__dirname,'..','server-data','user-list.json'), (err,data) => {
+          if(err)
+            console.log(err);
+          console.log('test');
+          console.log(data.toString());
+          userlist = JSON.parse(data.toString());
+          console.log(userlist)
+          if(userlist && userlist[jsondata.username]){
+            response.end('<head><meta charset="utf-8" /></head><p>用户已存在</p>');
+          }
+          userlist[jsondata.username] = {
+            username: jsondata.username,
+            password: jsondata.password,
+            nickname: jsondata.nickname
+          }
+          console.log(userlist);
+          fs.writeFile(path.join(__dirname,'..','server-data','user-list.json'), JSON.stringify(userlist), 'utf8', (err) => {
+            console.log('注册成功', err);
+          })
+          var headers = { Location: "/registSuccess" }; // 登录成功的跳转
+          response.writeHead(301, headers);
+          response.end();
+        })
+        })
+      break;
     case "boards":
       // "boards" refers to the root directory
       if (parts.length === 1) {
@@ -220,8 +302,14 @@ function handleRequest(request, response) {
           response.end(bundleString);
         });
       break;
+    
+    case "registSuccess":
+    case "": // login Page
+      logRequest(request);
+        loginTemplate.serve(request, response);
+        break;
 
-    case "": // Index page
+    case "index": // Index page
       logRequest(request);
         indexTemplate.serve(request, response);
       break;
