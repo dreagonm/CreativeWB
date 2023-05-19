@@ -1,0 +1,19 @@
+.cell rect {
+    fill: #f0f3f5;
+    stroke: #B0BEC5;
+    stroke-width: 1;
+  }
+  
+.cell text {
+    font-size: 16;
+    text-anchor: middle;
+    /* dominant-baseline: central; */
+}
+
+.cell.alternate rect {
+    fill: #a6b6c1;
+}
+
+.cell.alternate text {
+    fill: #e2eaed;
+}
