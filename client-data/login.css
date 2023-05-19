@@ -130,6 +130,15 @@ html {
     background: #fff;
   }
   
+  #named-board-form input[type="password"] {
+    width: 97%;
+    border-radius: 15px 0 0 15px;
+    background: #ffffffcf;
+  }
+  #named-board-form input[type="password"]:focus {
+    background: #fff;
+  }
+
   #named-board-form input[type="submit"] {
     border-radius: 0 15px 15px 0;
     background: #fff6;
