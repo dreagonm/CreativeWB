@@ -374,8 +374,11 @@ function handleRequest(request, response) {
               .replace(/[^\w]/g, "-"),
               nickname: userlist[jsondata.username].nickname
             }
+<<<<<<< HEAD
 
             console.log({token:current_online_user_Token[jsondata.username].Token});
+=======
+>>>>>>> 21dc83d24d6af1c6e4cbbddb010dc3ab8ac0911f
             fs.readFile(path.join(__dirname, '..', 'client-data', 'user-token.json'), (err, Data) => {
               if (err)
                 console.log(err);
