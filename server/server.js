@@ -16,7 +16,220 @@ var app = require("http").createServer(handler),
   jwtauth = require("./jwtauth.js");
   jwtBoardName = require("./jwtBoardnameAuth.js");
 
+
 var MIN_NODE_VERSION = 10.0;
+
+//chatapp
+var express = require('express')
+    , routes = require('./routes')
+    , user = require('./routes/user')
+    , http = require('http')
+    , path = require('path');
+
+var chatapp = express();
+
+//token验证
+const jwt = require('jsonwebtoken');
+
+// 定义中间件函数进行 token 验证
+function authenticateToken(req, res, next) {
+  // 从请求头部或查询参数中获取 token
+  const token = req.headers.authorization || req.query.token;
+
+  // 验证 token 的有效性
+  if (!token) {
+    return res.status(401).json({ error: 'Missing token' });
+  }
+
+  try {
+    // 验证 token 并提取用户信息
+    const decoded = jwt.verify(token, 'your-secret-key');
+    // 在请求中添加用户信息，以便后续处理使用
+    req.user = decoded.user;
+    // 继续处理下一个中间件或路由处理程序
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// chatapp all environments
+chatapp.set('port', process.env.PORT || 4555);
+chatapp.set('views', __dirname + '/views');
+chatapp.set('view engine', 'jade');
+chatapp.use(express.favicon());
+chatapp.use(express.logger('dev'));
+chatapp.use(express.bodyParser());
+chatapp.use(express.cookieParser());
+chatapp.use(express.methodOverride());
+chatapp.use(chatapp.router);
+chatapp.use(express.static(path.join(__dirname, 'public')));
+
+// chatapp development only
+if ('development' == chatapp.get('env')) {
+  chatapp.use(express.errorHandler());
+}
+
+var users = {};//存储在线用户列表的对象
+
+/*chatapp.get('/', function (req, res) {
+  if (req.cookies.user == null) {
+    res.redirect('/signin');
+  } else {
+    res.sendfile('client-data/index1.html');
+  }
+});*/
+chatapp.get('/', function (req, res) {
+  if (req.cookies.user == null) {
+    res.redirect('/signin');
+  } else {
+    res.sendfile('client-data/index1.html');
+  }
+});
+
+chatapp.get('/signin',  function (req, res) {
+  res.sendfile('client-data/signin.html');
+});
+
+chatapp.post('/signin', function (req, res) {
+  if (users[req.body.name]) {
+    //存在，则不允许登陆
+    res.redirect('/signin');
+  } else {
+    //不存在，把用户名存入 cookie 并跳转到主页
+    res.cookie("user", req.body.name, {maxAge: 1000*60*60*24*30});
+    res.redirect('/');
+  }
+});
+
+chatapp.get('/js/jquery.min.js', function(req, res) {
+  res.setHeader('Content-Type', 'application/javascript');
+  const fs = require('fs');
+  const path = require('path');
+  const jsFilePath = path.join(__dirname, 'js', 'jquery.min.js');
+
+  fs.readFile(jsFilePath, function(err, data) {
+    if (err) {
+      console.error('Failed to read JavaScript file:', err);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.send(data);
+    }
+  });
+});
+
+chatapp.get('/js/jquery.cookie.js', function(req, res) {
+  res.setHeader('Content-Type', 'application/javascript');
+  const fs = require('fs');
+  const path = require('path');
+  const jsFilePath = path.join(__dirname, 'js', 'jquery.cookie.js');
+
+  fs.readFile(jsFilePath, function(err, data) {
+    if (err) {
+      console.error('Failed to read JavaScript file:', err);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.send(data);
+    }
+  });
+});
+
+chatapp.get('/socket.io/socket.io.js', function(req, res) {
+  res.setHeader('Content-Type', 'application/javascript');
+  const fs = require('fs');
+  const path = require('path');
+  const jsFilePath = 'node_modules/socket.io/client-dist/socket.io.js';
+
+  fs.readFile(jsFilePath, function(err, data) {
+    if (err) {
+      console.error('Failed to read JavaScript file:', err);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.send(data);
+    }
+  });
+});
+
+chatapp.get('/js/chat.js', function(req, res) {
+  res.setHeader('Content-Type', 'application/javascript');
+  const fs = require('fs');
+  const path = require('path');
+  const jsFilePath = path.join(__dirname, 'js', 'chat.js');
+
+  fs.readFile(jsFilePath, function(err, data) {
+    if (err) {
+      console.error('Failed to read JavaScript file:', err);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.send(data);
+    }
+  });
+});
+
+var server4chat = http.createServer(chatapp);
+var temp=require('socket.io')(server4chat);
+var io4chat = temp.listen(server4chat);
+io4chat.path('/socket.io');
+io4chat.sockets.on('connection', function (socket) {
+
+  console.log('WebSocket 连接已打开');
+
+  socket.onclose = function(event) {
+    console.log('WebSocket 连接已关闭', event);
+  };
+
+  socket.onerror = function(error) {
+    console.error('WebSocket 错误', error);
+  };
+
+  //有人上线
+  socket.on('online', function (data) {
+    console.log('有人上线');
+    //将上线的用户名存储为 socket 对象的属性，以区分每个 socket 对象，方便后面使用
+    socket.name = data.user;
+    //users 对象中不存在该用户名则插入该用户名
+    if (!users[data.user]) {
+      users[data.user] = data.user;
+    }
+    //向所有用户广播该用户上线信息
+    console.log(users[data.user]);
+    io4chat.sockets.emit('online', {users: users, user: data.user});
+  });
+
+  //有人发话
+  socket.on('say', function (data) {
+    if (data.to == 'all') {
+      //向其他所有用户广播该用户发话信息
+      socket.broadcast.emit('say', data);
+    } else {
+      //向特定用户发送该用户发话信息
+      //clients 为存储所有连接对象的数组
+      var clients = io.sockets.clients();
+      //遍历找到该用户
+      clients.forEach(function (client) {
+        if (client.name == data.to) {
+          //触发该用户客户端的 say 事件
+          client.emit('say', data);
+        }
+      });
+    }
+  });
+
+  //有人下线
+  socket.on('disconnect', function() {
+    //若 users 对象中保存了该用户名
+    if (users[socket.name]) {
+      //从 users 对象中删除该用户名
+      delete users[socket.name];
+      //向其他所有用户广播该用户下线信息
+      socket.broadcast.emit('offline', {users: users, user: socket.name});
+    }
+  });
+});
+
+server4chat.listen(chatapp.get('port'), function(){
+  console.log('Express server listening on port ' + chatapp.get('port'));
+});
 
 if (parseFloat(process.versions.node) < MIN_NODE_VERSION) {
   console.warn(
@@ -161,6 +374,11 @@ function handleRequest(request, response) {
               .replace(/[^\w]/g, "-"),
               nickname: userlist[jsondata.username].nickname
             }
+<<<<<<< HEAD
+
+            console.log({token:current_online_user_Token[jsondata.username].Token});
+=======
+>>>>>>> 21dc83d24d6af1c6e4cbbddb010dc3ab8ac0911f
             fs.readFile(path.join(__dirname, '..', 'client-data', 'user-token.json'), (err, Data) => {
               if (err)
                 console.log(err);
@@ -181,10 +399,11 @@ function handleRequest(request, response) {
               "password": current_online_user_Token[jsondata.username].password,
               "nickname": current_online_user_Token[jsondata.username].nickname
             });
-            console.log(onlineUserInfoMap.get(current_online_user_Token[jsondata.username].token));
+            console.log({ token: current_online_user_Token[jsondata.username].Token });
             var headers = { Location: "index" }; // 登录成功的跳转
+              response.setHeader("Content-Type", "application/json");
               response.writeHead(301, headers);
-              response.end();
+              response.end(JSON.stringify({ token: current_online_user_Token[jsondata.username].Token }));
           }
           else{
             response.end('<head><meta charset="utf-8" /></head><p>登录失败</p>');
