@@ -161,9 +161,25 @@ function handleRequest(request, response) {
               .replace(/[^\w]/g, "-"),
               nickname: userlist[jsondata.username].nickname
             }
+            fs.readFile(path.join(__dirname, '..', 'client-data', 'user-token.json'), (err, Data) => {
+              if (err)
+                console.log(err);
+              tokens = JSON.parse(Data.toString());
+              if (tokens && tokens[userlist[jsondata.username].nickname]) {
+                console.log('Existed token')
+              }
+              tokens[userlist[jsondata.username].nickname] = {
+                nickname: userlist[jsondata.username].nickname,
+                token: current_online_user_Token[jsondata.username].Token
+              }
+              fs.writeFile(path.join(__dirname,'..','client-data','user-token.json'), JSON.stringify(tokens), 'utf8', (err) => {
+                console.log('Write succeed', err);
+              })
+            })
             onlineUserInfoMap.set(current_online_user_Token[jsondata.username].token, {
               "username": current_online_user_Token[jsondata.username].username,
-              "password": current_online_user_Token[jsondata.username].password
+              "password": current_online_user_Token[jsondata.username].password,
+              "nickname": current_online_user_Token[jsondata.username].nickname
             });
             console.log(onlineUserInfoMap.get(current_online_user_Token[jsondata.username].token));
             var headers = { Location: "index" }; // 登录成功的跳转
