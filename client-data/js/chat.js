@@ -18,7 +18,7 @@ $(document).ready(function() {
     if (data.user != from) {
       var sys = '<div style="color:#f00">系统(' + now() + '):' + '用户 ' + data.user + ' 上线了！</div>';
     } else {
-      var sys = '<div style="color:#f00">系统(' + now() + '):你进入了聊天室！</div>';
+      var sys = '<div style="color:#f00">系统(' + now() + '):你进入了白板！</div>';
     }
     $("#contents").append(sys + "<br/>");
     //刷新用户在线列表
