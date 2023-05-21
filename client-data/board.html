@@ -25,6 +25,12 @@
 
 <body>
 
+	
+        <iframe id="Chatroom"
+		scrolling="no"
+		src="http://127.0.0.1:4555">
+		</iframe>
+
 	<div id="board">
 		<svg id="canvas" width="500" height="500" version="1.1" xmlns="http://www.w3.org/2000/svg">
 			<defs id="defs"></defs>
@@ -109,5 +115,19 @@
 	<script src="../tools/image/image.js"></script>
 	<script src="../tools/table/table.js"></script>
 </body>
+
+
+
+<style>
+	iframe {
+		position: fixed;
+		bottom: 10px;
+		right: 20px;
+		width: 800px;
+		height: 450px;
+		z-index: 999;
+	}
+
+</style>
 
 </html>
